@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { CircularProgress, Box, Grid, TextField, Select, MenuItem, FormControl, InputLabel, ListSubheader } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { CircularProgress, Box, Grid, TextField, Select, MenuItem, FormControl, InputLabel, ListSubheader, FormControlLabel, Switch, Radio, RadioGroup } from '@mui/material';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import hearthstoneLogo from '../assets/hearthstone-logo.png';
 
 interface Card {
     id: string;
@@ -24,6 +25,26 @@ interface SetInfo {
     apiName?: string; // The name used in the API
 }
 
+const isSetInStandard = (setName: string, setInfo: { [key: string]: SetInfo }): boolean => {
+    // Core set is always in standard
+    if (setName === 'CORE') return true;
+
+    const set = setInfo[setName];
+    if (!set || !set.date) return false;
+
+    // Calculate 2 years ago from current date
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+    // Parse the set's release date
+    const [month, day, year] = set.date.split(', ')[0].split(' ');
+    const monthIndex = new Date(Date.parse(`${month} 1, 2000`)).getMonth();
+    const setDate = new Date(parseInt(year), monthIndex, parseInt(day));
+
+    // Check if the set was released within the last 2 years
+    return setDate >= twoYearsAgo;
+};
+
 const HearthstoneGrid = () => {
     const [cards, setCards] = useState<Card[]>([]);
     const [filteredCards, setFilteredCards] = useState<Card[]>([]);
@@ -33,6 +54,11 @@ const HearthstoneGrid = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
+    const [showActiveCards, setShowActiveCards] = useState(false);
+    const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const [isOverlayVisible, setOverlayVisible] = useState(false);
+    const [selectedManaCost, setSelectedManaCost] = useState<string>('');
+    const [hoveredCard, setHoveredCard] = useState<Card | null>(null); // Store the currently hovered card
     const [page, setPage] = useState(1);
     const cardsPerPage = 20;
 
@@ -78,31 +104,53 @@ const HearthstoneGrid = () => {
                 if (selectedClass && card.cardClass !== selectedClass) {
                     return false;
                 }
-    
+        
                 // Set filter
                 if (selectedSet) {
-                    const apiSetName = getApiSetName(setInfo[selectedSet]?.apiName || '');
-                    return card.set === apiSetName;
+                    const apiName = setInfo[selectedSet]?.apiName;
+                    if (!apiName || card.set !== apiName) {
+                        return false;
+                    }
                 }
-    
+        
+                // Mana cost filter
+                if (selectedManaCost) {
+                    if (selectedManaCost === '7+') {
+                        if ((card.cost ?? 0) < 7) return false;
+                    } else {
+                        if (card.cost !== parseInt(selectedManaCost)) return false;
+                    }
+                }
+        
+                // Standard rotation filter
+                if (showActiveCards) {
+                    const setKey = Object.keys(setInfo).find(key => 
+                        setInfo[key].apiName === card.set
+                    );
+                    if (!setKey || !isSetInStandard(setKey, setInfo)) {
+                        return false;
+                    }
+                }
+        
                 // Search query filter
                 if (searchTerm) {
                     const query = searchTerm.toLowerCase();
                     return (
                         card.name.toLowerCase().includes(query) ||
                         (card.text && card.text.toLowerCase().includes(query)) ||
+                        (card.flavor && card.flavor.toLowerCase().includes(query)) ||
                         (card.rarity && card.rarity.toLowerCase().includes(query)) ||
                         (card.type && card.type.toLowerCase().includes(query))
                     );
                 }
-    
+        
                 return true;
             });
-            
+        
             setFilteredCards(filtered);
             setPage(1);
             setHasMore(filtered.length > cardsPerPage);
-        }, [searchTerm, selectedClass, selectedSet, cards]);
+        }, [searchTerm, selectedClass, selectedSet, cards, showActiveCards, selectedManaCost]);
         
     // Expansion and mini-set release dates (newest to oldest)
     const setInfo: { [key: string]: SetInfo } = {
@@ -236,6 +284,28 @@ const HearthstoneGrid = () => {
         setHasMore(filtered.length > cardsPerPage);
     }, [searchTerm, selectedClass, selectedSet, cards]);
 
+    const handleMouseEnter = (card: Card) => {
+        setHoveredCard(card);
+        setOverlayVisible(true);
+        
+        const handleMouseMove = (event: MouseEvent) => {
+            setMousePosition({ x: event.clientX, y: event.clientY });
+        };
+    
+        // Attach the mouse move event listener
+        window.addEventListener('mousemove', handleMouseMove);
+    
+        // Clean up the event listener on mouse leave
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+        };
+    };
+    
+    const handleMouseLeave = () => {
+        setOverlayVisible(false);
+        setHoveredCard(null);
+    };
+    
     const fetchMoreData = () => {
         const nextPage = page + 1;
         setPage(nextPage);
@@ -250,7 +320,12 @@ const HearthstoneGrid = () => {
     }
 
     return (
-        <Box sx={{ flexGrow: 1, p: 4 }}>
+        <Box sx={{ flexGrow: 1, p: 4, m: 0 }}>
+            <img
+            src={hearthstoneLogo}
+            alt="Hearthstone Logo"
+            style={{ width: '40%', height: 'auto', margin: '0', padding: '0', display: 'block' }}
+        />
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                 <TextField
                     sx={{ flex: 2 }}
@@ -306,6 +381,47 @@ const HearthstoneGrid = () => {
                     </Select>
                 </FormControl>
             </Box>
+        
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: 'row', gap: 1 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <FormControlLabel
+            control={
+                <Switch
+                    checked={showActiveCards}
+                    onChange={() => setShowActiveCards(!showActiveCards)}
+                />
+            }
+            label="Current rotation only"
+            sx={{ color: 'black' }}
+        />
+    </Box>
+    
+    <RadioGroup
+        row
+        value={selectedManaCost}
+        onChange={(e) => setSelectedManaCost(e.target.value)}
+        sx={{ gap: 1 }}
+    >
+        <FormControlLabel
+            value=""
+            control={<Radio />}
+            label="All"
+            sx={{ color: 'black' }}
+        />
+        {[1, 2, 3, 4, 5, 6, '7+'].map((cost) => (
+            <FormControlLabel
+                key={cost}
+                value={cost.toString()}
+                control={<Radio />}
+                label={cost.toString()}
+                sx={{ color: 'black' }}
+            />
+        ))}
+    </RadioGroup>
+</Box>
+            
+            
+
 
             <InfiniteScroll
                 dataLength={filteredCards.slice(0, page * cardsPerPage).length}
@@ -327,36 +443,58 @@ const HearthstoneGrid = () => {
                                     }
                                 }}
                             >
-                                <Box
-                                    component="img"
-                                    src={`https://art.hearthstonejson.com/v1/render/latest/enUS/256x/${card.id}.png`}
-                                    alt={card.name}
-                                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                                        e.currentTarget.onerror = null;
-                                        e.currentTarget.style.display = 'none';
-                                        const parent = e.currentTarget.parentElement;
-                                        if (parent) {
-                                            parent.textContent = `${card.name} (Image not available)`;
-                                            parent.style.backgroundColor = '#f0f0f0';
-                                            parent.style.display = 'flex';
-                                            parent.style.alignItems = 'center';
-                                            parent.style.justifyContent = 'center';
-                                            parent.style.padding = '1rem';
-                                            parent.style.textAlign = 'center';
-                                        }
-                                    }}
-                                    sx={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'contain'
-                                    }}
-                                />
+                               <Box
+    component="img"
+    src={`https://art.hearthstonejson.com/v1/render/latest/enUS/256x/${card.id}.png`}
+    alt={card.name}
+    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.style.display = 'none';
+        const parent = e.currentTarget.parentElement;
+        if (parent) {
+            parent.textContent = `${card.name} (Image not available)`;
+            parent.style.backgroundColor = '#f0f0f0';
+            parent.style.display = 'flex';
+            parent.style.alignItems = 'center';
+            parent.style.justifyContent = 'center';
+            parent.style.padding = '1rem';
+            parent.style.textAlign = 'center';
+        }
+    }}
+    onMouseEnter={() => handleMouseEnter(card)} // Call the mouse enter handler
+    onMouseLeave={handleMouseLeave} // Call the mouse leave handler
+    sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain'
+    }}
+/>
                             </Box>
                         </Grid>
                     ))}
+
+{isOverlayVisible && hoveredCard && (
+    <Box
+        sx={{
+            position: 'fixed', // Change to 'fixed' to keep it relative to the viewport
+            top: mousePosition.y + 10, // Offset slightly from the cursor
+            left: mousePosition.x + 10,
+            backgroundColor: 'gray',
+            borderRadius: '7px',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+            padding: 2,
+            zIndex: 1000 // Ensure it appears above other elements
+        }}
+    >
+        <h2 style={{ fontWeight: '800', color: 'white' }}>{hoveredCard.name}</h2>
+        <p>{hoveredCard.text}</p>
+        <p>{hoveredCard.flavor}</p>
+        <h4>{hoveredCard.cardClass} - {hoveredCard.type} - {hoveredCard.rarity}</h4>
+    </Box>
+)}
                 </Grid>
             </InfiniteScroll>
         </Box>
