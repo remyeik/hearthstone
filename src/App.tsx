@@ -1,5 +1,5 @@
 import React from 'react';
-import { HearthstoneCardView } from './components/hearthstoneCardView';
+// import { HearthstoneCardView } from './components/hearthstoneCardView';
 import HearthstoneGrid from "./components/cardGrid.tsx";
 
 function App() {
