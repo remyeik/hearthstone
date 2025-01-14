@@ -543,9 +543,9 @@ const HearthstoneGrid = () => {
                 const query = searchTerm.toLowerCase();
                 return (
                     card.name.toLowerCase().includes(query) ||
-                    (card.text && card.text.toLowerCase().includes(query)) ||
-                    card.rarity.toLowerCase().includes(query) ||
-                    card.type.toLowerCase().includes(query)
+                    (card.text && card.text.toLowerCase().includes(query))
+                    // card.rarity.toLowerCase().includes(query) ||
+                    // card.type.toLowerCase().includes(query)
                 );
             }
 
