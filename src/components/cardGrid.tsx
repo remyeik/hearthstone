@@ -8,11 +8,11 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    ListSubheader,
     FormControlLabel,
     Switch,
     Radio,
     RadioGroup,
+    Button,
 } from "@mui/material";
 import InfiniteScroll from "react-infinite-scroll-component";
 import hearthstoneLogo from "../assets/hearthstone-logo.png";
@@ -81,39 +81,67 @@ const HearthstoneGrid = () => {
     const [hoveredCard, setHoveredCard] = useState<Card | null>(null); // Store the currently hovered card
     const [page, setPage] = useState(1);
     const cardsPerPage = 20;
+    const [sortBy, setSortBy] = useState<string>("name");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
     // Map the selected set to its API name
-    const getApiSetName = (selectedSet: string): string => {
-        switch (selectedSet) {
-            case "GREAT_DARK_BEYOND":
-                return "THE_GREAT_DARK_BEYOND";
-            case "BOOMS_INVENTIONS":
-                return "DR_BOOMS_INCREDIBLE_INVENTIONS";
-            case "RETURN_OF_THE_LICH_KING":
-                return "MARCH_OF_THE_LICH_KING";
-            case "THE_BARRENS":
-                return "FORGED_IN_THE_BARRENS";
-            case "BLACK_TEMPLE":
-                return "ASHES_OF_OUTLAND";
-            case "DRAGONS":
-                return "DESCENT_OF_DRAGONS";
-            case "DALARAN":
-                return "RISE_OF_SHADOWS";
-            case "TROLL":
-                return "RASTAKHANS_RUMBLE";
-            case "GILNEAS":
-                return "THE_WITCHWOOD";
-            case "LOOTAPALOOZA":
-                return "KOBOLDS_AND_CATACOMBS";
-            case "ICCA":
-                return "ICCA01";
-            case "GANGS":
-                return "MEAN_STREETS_OF_GADGETZAN";
-            case "OG":
-                return "WHISPERS_OF_THE_OLD_GODS";
-            default:
-                return selectedSet;
-        }
+    // const getApiSetName = (selectedSet: string): string => {
+    //     switch (selectedSet) {
+    //         case "GREAT_DARK_BEYOND":
+    //             return "THE_GREAT_DARK_BEYOND";
+    //         case "BOOMS_INVENTIONS":
+    //             return "DR_BOOMS_INCREDIBLE_INVENTIONS";
+    //         case "RETURN_OF_THE_LICH_KING":
+    //             return "MARCH_OF_THE_LICH_KING";
+    //         case "THE_BARRENS":
+    //             return "FORGED_IN_THE_BARRENS";
+    //         case "BLACK_TEMPLE":
+    //             return "ASHES_OF_OUTLAND";
+    //         case "DRAGONS":
+    //             return "DESCENT_OF_DRAGONS";
+    //         case "DALARAN":
+    //             return "RISE_OF_SHADOWS";
+    //         case "TROLL":
+    //             return "RASTAKHANS_RUMBLE";
+    //         case "GILNEAS":
+    //             return "THE_WITCHWOOD";
+    //         case "LOOTAPALOOZA":
+    //             return "KOBOLDS_AND_CATACOMBS";
+    //         case "ICCA":
+    //             return "ICCA01";
+    //         case "GANGS":
+    //             return "MEAN_STREETS_OF_GADGETZAN";
+    //         case "OG":
+    //             return "WHISPERS_OF_THE_OLD_GODS";
+    //         default:
+    //             return selectedSet;
+    //     }
+    // };
+
+    // Legg til sorteringsfunksjon
+    const sortCards = (cards: Card[]) => {
+        return [...cards].sort((a, b) => {
+            switch (sortBy) {
+                case "name":
+                    return sortOrder === "asc" 
+                        ? a.name.localeCompare(b.name)
+                        : b.name.localeCompare(a.name);
+                case "cost":
+                    return sortOrder === "asc"
+                        ? (a.cost ?? 0) - (b.cost ?? 0)
+                        : (b.cost ?? 0) - (a.cost ?? 0);
+                case "attack":
+                    return sortOrder === "asc"
+                        ? (a.attack ?? 0) - (b.attack ?? 0)
+                        : (b.attack ?? 0) - (a.attack ?? 0);
+                case "health":
+                    return sortOrder === "asc"
+                        ? (a.health ?? 0) - (b.health ?? 0)
+                        : (b.health ?? 0) - (a.health ?? 0);
+                default:
+                    return 0;
+            }
+        });
     };
 
     useEffect(() => {
@@ -140,7 +168,7 @@ const HearthstoneGrid = () => {
                 }
             }
 
-            // Standard rotation filter
+            // Rotation filter
             if (showActiveCards) {
                 const setKey = Object.keys(setInfo).find(
                     (key) => setInfo[key].apiName === card.set,
@@ -150,7 +178,7 @@ const HearthstoneGrid = () => {
                 }
             }
 
-            // Search query filter
+            // Search filter
             if (searchTerm) {
                 const query = searchTerm.toLowerCase();
                 return (
@@ -167,7 +195,8 @@ const HearthstoneGrid = () => {
             return true;
         });
 
-        setFilteredCards(filtered);
+        const sortedAndFiltered = sortCards(filtered);
+        setFilteredCards(sortedAndFiltered);
         setPage(1);
         setHasMore(filtered.length > cardsPerPage);
     }, [
@@ -177,9 +206,11 @@ const HearthstoneGrid = () => {
         cards,
         showActiveCards,
         selectedManaCost,
+        sortBy,
+        sortOrder,
     ]);
 
-    // Expansion and mini-set release dates (newest to oldest)
+    // Expansion and mini-sets
     const setInfo: { [key: string]: SetInfo } = {
         HEROES_OF_STARCRAFT: {
             order: 43,
@@ -553,6 +584,19 @@ const HearthstoneGrid = () => {
         setPage(nextPage);
     };
 
+    // Legg til handleSort funksjon
+    const handleSort = (newSortBy: string) => {
+        if (newSortBy === sortBy) {
+            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+        } else {
+            setSortBy(newSortBy);
+            setSortOrder("asc");
+        }
+    };
+
+    const displayedCardsCount = filteredCards.slice(0, page * cardsPerPage).length;
+    const totalFilteredCards = filteredCards.length;
+
     if (error) {
         return <div>Error: {error}</div>;
     }
@@ -567,11 +611,22 @@ const HearthstoneGrid = () => {
                 src={hearthstoneLogo}
                 alt="Hearthstone Logo"
                 style={{
-                    width: "40%",
+                    width: "20%", 
                     height: "auto",
                     margin: "0",
                     padding: "0",
                     display: "block",
+                    cursor: "pointer"
+                }}
+                onClick={() => {
+                    setSearchTerm("");
+                    setSelectedClass("");
+                    setSelectedSet("");
+                    setShowActiveCards(false);
+                    setSelectedManaCost("");
+                    setSortBy("name");
+                    setSortOrder("asc");
+                    setPage(1);
                 }}
             />
             <Box
@@ -681,6 +736,30 @@ const HearthstoneGrid = () => {
                 </RadioGroup>
             </Box>
 
+            <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+                {[
+                    { value: "name", label: "Name" },
+                    { value: "cost", label: "Mana" },
+                    { value: "attack", label: "Attack" },
+                    { value: "health", label: "Health" }
+                ].map((option) => (
+                    <Button
+                        key={option.value}
+                        variant={sortBy === option.value ? "contained" : "outlined"}
+                        onClick={() => handleSort(option.value)}
+                        endIcon={sortBy === option.value ? (
+                            sortOrder === "asc" ? "↑" : "↓"
+                        ) : null}
+                    >
+                        {option.label}
+                    </Button>
+                ))}
+            </Box>
+
+            <Box sx={{ mb: 3, color: 'text.secondary' }}>
+                Showing {displayedCardsCount} of {totalFilteredCards} cards
+            </Box>
+
             <InfiniteScroll
                 dataLength={filteredCards.slice(0, page * cardsPerPage).length}
                 next={fetchMoreData}
@@ -724,8 +803,8 @@ const HearthstoneGrid = () => {
                                             parent.style.textAlign = "center";
                                         }
                                     }}
-                                    onMouseEnter={() => handleMouseEnter(card)} // Call the mouse enter handler
-                                    onMouseLeave={handleMouseLeave} // Call the mouse leave handler
+                                    onMouseEnter={() => handleMouseEnter(card)}
+                                    onMouseLeave={handleMouseLeave}
                                     sx={{
                                         position: "absolute",
                                         top: 0,
@@ -742,14 +821,14 @@ const HearthstoneGrid = () => {
                     {isOverlayVisible && hoveredCard && (
                         <Box
                             sx={{
-                                position: "fixed", // Change to 'fixed' to keep it relative to the viewport
-                                top: mousePosition.y + 10, // Offset slightly from the cursor
+                                position: "fixed",
+                                top: mousePosition.y + 10,
                                 left: mousePosition.x + 10,
                                 backgroundColor: "gray",
                                 borderRadius: "7px",
                                 boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
                                 padding: 2,
-                                zIndex: 1000, // Ensure it appears above other elements
+                                zIndex: 1000,
                             }}
                         >
                             <h2 style={{ fontWeight: "800", color: "white" }}>
@@ -758,8 +837,10 @@ const HearthstoneGrid = () => {
                             <p>{hoveredCard.text}</p>
                             <p>{hoveredCard.flavor}</p>
                             <h4>
-                                {hoveredCard.cardClass} - {hoveredCard.type} -{" "}
-                                {hoveredCard.rarity}
+                                {Object.keys(setInfo).find(key => setInfo[key].apiName === hoveredCard.set) || hoveredCard.set}
+                            </h4>
+                            <h4>
+                                {hoveredCard.cardClass} - {hoveredCard.type} - {hoveredCard.rarity}
                             </h4>
                         </Box>
                     )}
