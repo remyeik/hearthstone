@@ -1,6 +1,6 @@
 {
     "name": "hearthstone",
-    "homepage": "https://remyeik.github.io/",
+    "homepage": "https://remyeik.github.io/hearthstone",
     "private": false,
     "version": "0.0.0",
     "type": "module",
@@ -9,8 +9,7 @@
         "build": "tsc -b && vite build",
         "lint": "eslint .",
         "preview": "vite preview",
-        "predeploy": "npm run build",
-        "deploy": "gh-pages -d dist"
+        "deploy": "npm run build"
     },
     "dependencies": {
         "@emotion/react": "^11.14.0",
