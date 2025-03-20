@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import InfiniteScroll from "react-infinite-scroll-component";
 import hearthstoneLogo from "../assets/hearthstone-logo.png";
+import { AArrowDown } from "@byggforsk/fundament-icons-react";
 
 interface Card {
     id: string;
@@ -123,7 +124,7 @@ const HearthstoneGrid = () => {
         return [...cards].sort((a, b) => {
             switch (sortBy) {
                 case "name":
-                    return sortOrder === "asc" 
+                    return sortOrder === "asc"
                         ? a.name.localeCompare(b.name)
                         : b.name.localeCompare(a.name);
                 case "cost":
@@ -594,7 +595,10 @@ const HearthstoneGrid = () => {
         }
     };
 
-    const displayedCardsCount = filteredCards.slice(0, page * cardsPerPage).length;
+    const displayedCardsCount = filteredCards.slice(
+        0,
+        page * cardsPerPage,
+    ).length;
     const totalFilteredCards = filteredCards.length;
 
     if (error) {
@@ -611,12 +615,12 @@ const HearthstoneGrid = () => {
                 src={hearthstoneLogo}
                 alt="Hearthstone Logo"
                 style={{
-                    width: "20%", 
+                    width: "20%",
                     height: "auto",
                     margin: "0",
                     padding: "0",
                     display: "block",
-                    cursor: "pointer"
+                    cursor: "pointer",
                 }}
                 onClick={() => {
                     setSearchTerm("");
@@ -660,6 +664,7 @@ const HearthstoneGrid = () => {
                         ))}
                     </Select>
                 </FormControl>
+                <AArrowDown />
                 <FormControl sx={{ flex: 1 }}>
                     <InputLabel>Expansion</InputLabel>
                     <Select
@@ -736,27 +741,33 @@ const HearthstoneGrid = () => {
                 </RadioGroup>
             </Box>
 
-            <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+            <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
                 {[
                     { value: "name", label: "Name" },
                     { value: "cost", label: "Mana" },
                     { value: "attack", label: "Attack" },
-                    { value: "health", label: "Health" }
+                    { value: "health", label: "Health" },
                 ].map((option) => (
                     <Button
                         key={option.value}
-                        variant={sortBy === option.value ? "contained" : "outlined"}
+                        variant={
+                            sortBy === option.value ? "contained" : "outlined"
+                        }
                         onClick={() => handleSort(option.value)}
-                        endIcon={sortBy === option.value ? (
-                            sortOrder === "asc" ? "↑" : "↓"
-                        ) : null}
+                        endIcon={
+                            sortBy === option.value
+                                ? sortOrder === "asc"
+                                    ? "↑"
+                                    : "↓"
+                                : null
+                        }
                     >
                         {option.label}
                     </Button>
                 ))}
             </Box>
 
-            <Box sx={{ mb: 3, color: 'text.secondary' }}>
+            <Box sx={{ mb: 3, color: "text.secondary" }}>
                 Showing {displayedCardsCount} of {totalFilteredCards} cards
             </Box>
 
@@ -837,10 +848,15 @@ const HearthstoneGrid = () => {
                             <p>{hoveredCard.text}</p>
                             <p>{hoveredCard.flavor}</p>
                             <h4>
-                                {Object.keys(setInfo).find(key => setInfo[key].apiName === hoveredCard.set) || hoveredCard.set}
+                                {Object.keys(setInfo).find(
+                                    (key) =>
+                                        setInfo[key].apiName ===
+                                        hoveredCard.set,
+                                ) || hoveredCard.set}
                             </h4>
                             <h4>
-                                {hoveredCard.cardClass} - {hoveredCard.type} - {hoveredCard.rarity}
+                                {hoveredCard.cardClass} - {hoveredCard.type} -{" "}
+                                {hoveredCard.rarity}
                             </h4>
                         </Box>
                     )}
