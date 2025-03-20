@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 import InfiniteScroll from "react-infinite-scroll-component";
 import hearthstoneLogo from "../assets/hearthstone-logo.png";
-import { AArrowDown } from "@byggforsk/fundament-icons-react";
 
 interface Card {
     id: string;
@@ -664,7 +663,6 @@ const HearthstoneGrid = () => {
                         ))}
                     </Select>
                 </FormControl>
-                <AArrowDown />
                 <FormControl sx={{ flex: 1 }}>
                     <InputLabel>Expansion</InputLabel>
                     <Select
